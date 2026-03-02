@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Data Upload</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #111118; --border: #2a2a3a;
+    --accent: #00ff88; --accent2: #7c3aed; --text: #e8e8f0; --muted: #6b6b80;
+  }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh; display: flex; align-items: center;
+    justify-content: center; padding: 2rem; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(0,255,136,0.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .container { width: 100%; max-width: 600px; position: relative; }
+  .header { margin-bottom: 2.5rem; }
+  .tag {
+    display: inline-block; font-family: 'Space Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent); background: rgba(0,255,136,0.08);
+    border: 1px solid rgba(0,255,136,0.2); padding: 0.3rem 0.8rem;
+    border-radius: 2px; margin-bottom: 1rem;
+  }
+  h1 { font-size: 2.4rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .subtitle { margin-top: 0.6rem; color: var(--muted); font-size: 0.95rem; font-family: 'Space Mono', monospace; }
+  .dropzone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 3rem 2rem;
+    text-align: center; cursor: pointer; position: relative; transition: all 0.3s ease;
+    background: var(--surface); overflow: hidden;
+  }
+  .dropzone::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(0,255,136,0.03), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .dropzone:hover, .dropzone.active { border-color: var(--accent); background: rgba(0,255,136,0.04); }
+  .dropzone:hover::before, .dropzone.active::before { opacity: 1; }
+  .dropzone.active { transform: scale(1.01); box-shadow: 0 0 40px rgba(0,255,136,0.1); }
+  .drop-icon {
+    width: 64px; height: 64px; margin: 0 auto 1.2rem;
+    background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; transition: transform 0.3s;
+  }
+  .dropzone:hover .drop-icon { transform: translateY(-4px); }
+  .drop-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .drop-sub { color: var(--muted); font-size: 0.82rem; font-family: 'Space Mono', monospace; }
+  .formats { display: flex; gap: 0.5rem; justify-content: center; margin-top: 1.2rem; }
+  .fmt-badge { font-family: 'Space Mono', monospace; font-size: 0.7rem; padding: 0.25rem 0.6rem; border-radius: 3px; font-weight: 700; letter-spacing: 0.05em; }
+  .fmt-csv { background: rgba(0,255,136,0.12); color: var(--accent); border: 1px solid rgba(0,255,136,0.3); }
+  .fmt-xls { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+  .fmt-xlsx { background: rgba(124,58,237,0.12); color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }
+  #fileInput { display: none; }
+  .file-list { margin-top: 1.2rem; display: flex; flex-direction: column; gap: 0.6rem; }
+  .file-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.8rem 1rem; display: flex; align-items: center; gap: 0.8rem;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .file-ext { font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.4rem; border-radius: 3px; min-width: 36px; text-align: center; }
+  .ext-csv { background: rgba(0,255,136,0.15); color: var(--accent); }
+  .ext-xlsx, .ext-xls { background: rgba(124,58,237,0.15); color: #a78bfa; }
+  .file-info { flex: 1; overflow: hidden; }
+  .file-name { font-size: 0.88rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); margin-top: 0.1rem; }
+  .file-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0.2rem; line-height: 1; transition: color 0.2s; border-radius: 4px; }
+  .file-remove:hover { color: #f87171; }
+  .progress-wrap { display: none; margin-top: 0.4rem; height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; width: 0%; transition: width 0.4s ease; }
+  .actions { margin-top: 1.5rem; display: flex; gap: 0.8rem; }
+  .btn { flex: 1; padding: 0.9rem 1.5rem; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; letter-spacing: 0.02em; }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover:not(:disabled) { background: #00e87a; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,255,136,0.25); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--muted); color: var(--text); }
+  .status { display: none; margin-top: 1rem; padding: 0.8rem 1rem; border-radius: 8px; font-family: 'Space Mono', monospace; font-size: 0.8rem; text-align: center; }
+  .status.success { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.25); color: var(--accent); }
+  .type-error { display: none; color: #f87171; font-family: 'Space Mono', monospace; font-size: 0.75rem; margin-top: 0.6rem; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="tag">📊 Big Data Upload</div>
+    <h1>Subir <span>Archivos</span><br>de Datos</h1>
+    <p class="subtitle">// csv · xls · xlsx soportados</p>
+  </div>
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+    <div class="drop-icon">📁</div>
+    <div class="drop-title">Arrastra y suelta aquí</div>
+    <div class="drop-sub">o haz clic para seleccionar archivos</div>
+    <div class="formats">
+      <span class="fmt-badge fmt-csv">CSV</span>
+      <span class="fmt-badge fmt-xls">XLS</span>
+      <span class="fmt-badge fmt-xlsx">XLSX</span>
+    </div>
+  </div>
+  <div class="type-error" id="typeError">⚠ Solo se permiten archivos .csv, .xls o .xlsx</div>
+  <input type="file" id="fileInput" multiple accept=".csv,.xls,.xlsx">
+  <div class="file-list" id="fileList"></div>
+  <div class="actions">
+    <button class="btn btn-secondary" id="clearBtn" onclick="clearFiles()" style="display:none">Limpiar</button>
+    <button class="btn btn-primary" id="uploadBtn" onclick="uploadFiles()" disabled>Subir archivos</button>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const fileList = document.getElementById('fileList');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const status = document.getElementById('status');
+  const typeError = document.getElementById('typeError');
+  let files = [];
+  const ALLOWED = ['csv','xls','xlsx'];
+
+  function getExt(name) { return name.split('.').pop().toLowerCase(); }
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/1048576).toFixed(1) + ' MB';
+  }
+
+  function addFiles(newFiles) {
+    let hasError = false;
+    for (const f of newFiles) {
+      const ext = getExt(f.name);
+      if (!ALLOWED.includes(ext)) { hasError = true; continue; }
+      if (files.some(x => x.name === f.name && x.size === f.size)) continue;
+      files.push(f);
+    }
+    typeError.style.display = hasError ? 'block' : 'none';
+    renderList();
+  }
+
+  function renderList() {
+    fileList.innerHTML = '';
+    files.forEach((f, i) => {
+      const ext = getExt(f.name);
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <span class="file-ext ext-${ext}">${ext.toUpperCase()}</span>
+        <div class="file-info">
+          <div class="file-name">${f.name}</div>
+          <div class="file-size">${formatSize(f.size)}</div>
+          <div class="progress-wrap" id="prog-${i}"><div class="progress-bar" id="bar-${i}"></div></div>
+        </div>
+        <button class="file-remove" onclick="removeFile(${i})">✕</button>
+      `;
+      fileList.appendChild(item);
+    });
+    uploadBtn.disabled = files.length === 0;
+    clearBtn.style.display = files.length > 0 ? 'block' : 'none';
+    status.style.display = 'none';
+  }
+
+  function removeFile(i) { files.splice(i, 1); renderList(); }
+  function clearFiles() { files = []; fileInput.value = ''; renderList(); typeError.style.display = 'none'; }
+
+  function animateBar(bar, target, duration) {
+    return new Promise(res => {
+      let start = null;
+      function step(ts) {
+        if (!start) start = ts;
+        const p = Math.min((ts - start) / duration, 1);
+        bar.style.width = (p * target) + '%';
+        if (p < 1) requestAnimationFrame(step); else res();
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+    const rows = lines.slice(1).map(line => {
+      // Handle commas inside quotes
+      const cols = [];
+      let cur = '', inQ = false;
+      for (let c of line) {
+        if (c === '"') inQ = !inQ;
+        else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else cur += c;
+      }
+      cols.push(cur.trim());
+      return cols;
+    });
+    return { headers, rows };
+  }
+
+  async function uploadFiles() {
+    if (!files.length) return;
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Subiendo...';
+
+    for (let i = 0; i < files.length; i++) {
+      const prog = document.getElementById(`prog-${i}`);
+      const bar = document.getElementById(`bar-${i}`);
+      if (prog) prog.style.display = 'block';
+      await animateBar(bar, 100, 700);
+    }
+
+    // Read first CSV file
+    const csvFile = files.find(f => getExt(f.name) === 'csv');
+    if (csvFile) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const { headers, rows } = parseCSV(e.target.result);
+        // Store in sessionStorage and redirect
+        sessionStorage.setItem('csvHeaders', JSON.stringify(headers));
+        sessionStorage.setItem('csvRows', JSON.stringify(rows));
+        sessionStorage.setItem('csvFileName', csvFile.name);
+        setTimeout(() => { window.location.href = 'gestion.html'; }, 600);
+      };
+      reader.readAsText(csvFile, 'UTF-8');
+    } else {
+      // For xls/xlsx just redirect with filename
+      sessionStorage.setItem('csvFileName', files[0].name);
+      setTimeout(() => { window.location.href = 'gestion.html'; }, 600);
+    }
+
+    status.className = 'status success';
+    status.textContent = `✓ Archivo subido. Redirigiendo...`;
+    status.style.display = 'block';
+  }
+
+  fileInput.addEventListener('change', () => addFiles([...fileInput.files]));
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('active'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault(); dropzone.classList.remove('active');
+    addFiles([...e.dataTransfer.files]);
+  });
+</script>
+</body>
+</html>

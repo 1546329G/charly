@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Usuarios</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #111118; --surface2: #16161f;
+    --border: #2a2a3a; --accent: #00ff88; --accent2: #7c3aed;
+    --text: #e8e8f0; --muted: #6b6b80;
+  }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Syne', sans-serif; min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 10% 0%, rgba(124,58,237,0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 90% 100%, rgba(0,255,136,0.06) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* TOP NAV */
+  .navbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-brand {
+    display: flex; align-items: center; gap: 0.8rem;
+  }
+  .nav-logo {
+    width: 32px; height: 32px; background: var(--accent);
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 1rem;
+  }
+  .nav-title { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
+  .nav-title span { color: var(--accent); }
+  .nav-back {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: 'Space Mono', monospace; font-size: 0.75rem;
+    color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); padding: 0.4rem 0.9rem;
+    border-radius: 6px; transition: all 0.2s;
+  }
+  .nav-back:hover { color: var(--text); border-color: var(--muted); }
+
+  /* MAIN */
+  main { padding: 2rem; position: relative; z-index: 1; }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; flex-wrap: wrap;
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  .page-header-left {}
+  .tag {
+    display: inline-block; font-family: 'Space Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent); background: rgba(0,255,136,0.08);
+    border: 1px solid rgba(0,255,136,0.2); padding: 0.25rem 0.7rem;
+    border-radius: 2px; margin-bottom: 0.6rem;
+  }
+  h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .file-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    margin-top: 0.4rem; font-family: 'Space Mono', monospace;
+    font-size: 0.72rem; color: var(--muted);
+  }
+  .file-badge .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  /* STATS */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem 1.2rem;
+    animation: fadeUp 0.4s ease both;
+  }
+  .stat-card:nth-child(1){animation-delay:0.05s}
+  .stat-card:nth-child(2){animation-delay:0.1s}
+  .stat-card:nth-child(3){animation-delay:0.15s}
+  .stat-card:nth-child(4){animation-delay:0.2s}
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .stat-label { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.4rem; }
+  .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+  .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
+
+  /* TOOLBAR */
+  .toolbar {
+    display: flex; align-items: center; gap: 0.8rem;
+    margin-bottom: 1rem; flex-wrap: wrap;
+  }
+  .search-wrap {
+    flex: 1; min-width: 200px; position: relative;
+  }
+  .search-wrap input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.82rem;
+    padding: 0.6rem 0.8rem 0.6rem 2.2rem; border-radius: 8px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-icon { position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem; }
+  .btn-export {
+    background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.25);
+    color: var(--accent); font-family: 'Syne', sans-serif; font-size: 0.82rem;
+    font-weight: 700; padding: 0.6rem 1.1rem; border-radius: 8px;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .btn-export:hover { background: rgba(0,255,136,0.15); }
+  .rows-info { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+
+  /* TABLE WRAPPER */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+    animation: fadeUp 0.5s ease 0.2s both;
+  }
+  .table-scroll { overflow-x: auto; max-height: 65vh; overflow-y: auto; }
+
+  /* Custom scrollbar */
+  .table-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+  .table-scroll::-webkit-scrollbar-track { background: var(--surface); }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  .table-scroll::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead { position: sticky; top: 0; z-index: 10; }
+  th {
+    background: #0d0d14; border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1rem; text-align: left;
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+    white-space: nowrap; cursor: pointer; user-select: none;
+    transition: color 0.2s;
+  }
+  th:hover { color: var(--accent); }
+  th .sort-arrow { margin-left: 0.3rem; opacity: 0.4; }
+  th.sorted { color: var(--accent); }
+  th.sorted .sort-arrow { opacity: 1; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    transition: background 0.15s;
+    animation: rowIn 0.3s ease both;
+  }
+  @keyframes rowIn { from{opacity:0} to{opacity:1} }
+  tbody tr:hover { background: rgba(0,255,136,0.03); }
+  tbody tr:last-child { border-bottom: none; }
+
+  td {
+    padding: 0.7rem 1rem; color: var(--text);
+    white-space: nowrap; max-width: 200px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  td:first-child { font-weight: 700; }
+
+  /* Row number col */
+  .col-num {
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    color: var(--muted); width: 40px; text-align: center;
+  }
+
+  /* PAGINATION */
+  .pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.8rem 1rem; border-top: 1px solid var(--border);
+    flex-wrap: wrap; gap: 0.5rem;
+  }
+  .page-info { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+  .page-btns { display: flex; gap: 0.3rem; }
+  .page-btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.72rem;
+    padding: 0.3rem 0.7rem; border-radius: 5px; cursor: pointer; transition: all 0.2s;
+  }
+  .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .page-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+  .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* Empty state */
+  .empty {
+    text-align: center; padding: 4rem 2rem;
+    font-family: 'Space Mono', monospace; color: var(--muted); font-size: 0.85rem;
+  }
+  .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">
+    <div class="nav-logo">🦷</div>
+    <div class="nav-title">Clínica <span>Dental</span></div>
+  </div>
+  <a href="index.html" class="nav-back">← Subir otro archivo</a>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="tag">👥 Panel de administración</div>
+      <h1>Gestión de <span>Usuarios</span></h1>
+      <div class="file-badge">
+        <span class="dot"></span>
+        <span id="fileName">Cargando...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-label">Total Pacientes</div><div class="stat-value" id="statTotal">—</div><div class="stat-sub">registros cargados</div></div>
+    <div class="stat-card"><div class="stat-label">Columnas</div><div class="stat-value" id="statCols">—</div><div class="stat-sub">campos de datos</div></div>
+    <div class="stat-card"><div class="stat-label">Mostrando</div><div class="stat-value" id="statShowing">—</div><div class="stat-sub">registros visibles</div></div>
+    <div class="stat-card"><div class="stat-label">Página</div><div class="stat-value" id="statPage">—</div><div class="stat-sub">de navegación</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Buscar paciente..." oninput="filterTable()">
+    </div>
+    <button class="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
+    <span class="rows-info" id="rowsInfo"></span>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table id="dataTable">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="empty" id="emptyState" style="display:none">
+        <div class="empty-icon">📭</div>
+        No se encontraron resultados para tu búsqueda.
+      </div>
+    </div>
+    <div class="pagination">
+      <span class="page-info" id="pageInfo"></span>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  let allRows = [], headers = [], filteredRows = [];
+  let currentPage = 1;
+  const pageSize = 10;
+  let sortCol = -1, sortAsc = true;
+
+  function init() {
+    const fname = sessionStorage.getItem('csvFileName') || 'archivo.csv';
+    document.getElementById('fileName').textContent = fname;
+
+    try {
+      headers = JSON.parse(sessionStorage.getItem('csvHeaders') || '[]');
+      allRows = JSON.parse(sessionStorage.getItem('csvRows') || '[]');
+    } catch(e) { headers = []; allRows = []; }
+
+    // Remove empty rows
+    allRows = allRows.filter(r => r.some(c => c && c.trim()));
+
+    filteredRows = [...allRows];
+    renderHead();
+    renderStats();
+    renderTable();
+  }
+
+  function renderHead() {
+    const thead = document.getElementById('tableHead');
+    if (!headers.length) return;
+    let html = '<tr><th class="col-num">#</th>';
+    headers.forEach((h, i) => {
+      html += `<th onclick="sortBy(${i})" id="th-${i}">${h} <span class="sort-arrow">↕</span></th>`;
+    });
+    thead.innerHTML = html + '</tr>';
+  }
+
+  function renderStats() {
+    document.getElementById('statTotal').textContent = allRows.length;
+    document.getElementById('statCols').textContent = headers.length;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const empty = document.getElementById('emptyState');
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    const pageRows = filteredRows.slice(start, end);
+
+    if (!filteredRows.length) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      tbody.innerHTML = pageRows.map((row, ri) => {
+        const globalIdx = start + ri + 1;
+        const cells = headers.map((_, ci) => {
+          const val = row[ci] !== undefined ? row[ci] : '';
+          return `<td title="${val}">${val || '—'}</td>`;
+        }).join('');
+        return `<tr><td class="col-num">${globalIdx}</td>${cells}</tr>`;
+      }).join('');
+    }
+
+    const showing = Math.min(pageSize, filteredRows.length - start);
+    document.getElementById('statShowing').textContent = showing > 0 ? showing : 0;
+    document.getElementById('statPage').textContent = `${currentPage}/${Math.ceil(filteredRows.length/pageSize)||1}`;
+    document.getElementById('rowsInfo').textContent = `${filteredRows.length} resultado${filteredRows.length !== 1 ? 's' : ''}`;
+
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const total = Math.ceil(filteredRows.length / pageSize);
+    const info = document.getElementById('pageInfo');
+    const btns = document.getElementById('pageBtns');
+    const start = (currentPage-1)*pageSize+1;
+    const end = Math.min(currentPage*pageSize, filteredRows.length);
+    info.textContent = filteredRows.length ? `Mostrando ${start}–${end} de ${filteredRows.length}` : 'Sin resultados';
+
+    let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+    for (let p = 1; p <= total; p++) {
+      if (total > 7 && p > 2 && p < total - 1 && Math.abs(p - currentPage) > 1) {
+        if (p === 3 || p === total - 2) html += `<button class="page-btn" disabled>…</button>`;
+        continue;
+      }
+      html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+    }
+    html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage>=total?'disabled':''}>›</button>`;
+    btns.innerHTML = html;
+  }
+
+  function goPage(p) {
+    const total = Math.ceil(filteredRows.length / pageSize);
+    if (p < 1 || p > total) return;
+    currentPage = p;
+    renderTable();
+  }
+
+  function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    filteredRows = allRows.filter(row => row.some(cell => (cell||'').toLowerCase().includes(q)));
+    currentPage = 1;
+    renderTable();
+  }
+
+  function sortBy(col) {
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+
+    filteredRows.sort((a, b) => {
+      const va = (a[col]||'').toLowerCase();
+      const vb = (b[col]||'').toLowerCase();
+      const na = parseFloat(va.replace(/[^0-9.-]/g,'')), nb = parseFloat(vb.replace(/[^0-9.-]/g,''));
+      if (!isNaN(na) && !isNaN(nb)) return sortAsc ? na-nb : nb-na;
+      return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+
+    // Update header arrows
+    document.querySelectorAll('th').forEach((th, i) => {
+      th.classList.remove('sorted');
+      const arr = th.querySelector('.sort-arrow');
+      if (arr) arr.textContent = '↕';
+    });
+    const th = document.getElementById(`th-${col}`);
+    if (th) {
+      th.classList.add('sorted');
+      th.querySelector('.sort-arrow').textContent = sortAsc ? '↑' : '↓';
+    }
+
+    currentPage = 1;
+    renderTable();
+  }
+
+  function exportCSV() {
+    const rows = [headers, ...filteredRows];
+    const csv = rows.map(r => r.map(c => `"${(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'gestion_usuarios_export.csv';
+    a.click();
+  }
+
+  init();
+</script>
+</body>
+</html>
